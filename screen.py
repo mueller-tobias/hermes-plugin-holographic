@@ -12,8 +12,14 @@ import unicodedata
 
 
 # A sentence ends at . ! ? and Chinese 。；！？; a dot followed by a non-space is inside it ("Python 3.12",
-# "topic.md", "v0.21.6") unless it sits between a lower-case and a capital letter ("tea.I use": a missing space)
-_RE_SENTENCE = re.compile(r"(?:[^.!?\n。；！？]|\.(?=\S)(?!(?<=[a-zа-яё]\.)[A-ZА-ЯЁ]))+[.!?。；！？]?")
+# "topic.md", "v0.21.6") unless it sits between a lower-case and a capital letter ("tea.I use": a missing space).
+# The dot of a German abbreviation ("z. B.", "d. h.", "bzw.", "usw.", "Dr.") or of a day before its month ("am 16.
+# November") does not end one either: "Ich nutze z. B. Vim" stays one sentence. A sentence that ends on such an
+# abbreviation runs on into the next ("… Obst, Gemüse usw. Wir haben …"), and is stored whole if it is extracted.
+_RE_SENTENCE = re.compile(
+    r"(?:(?<![^\W\d_])(?:[zZ]\.\s?B|[dD]\.\s?h|[uU]\.\s?a|[oO]\.\s?[äÄ]|bzw|usw|ggf|evtl|inkl|zzgl|bspw|vgl|ca|"
+    r"Dr|Prof|Nr|Str|Mio|Mrd|etc)\.|(?<!\d)\d{1,2}\.(?=\s+(?:Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|"
+    r"September|Oktober|November|Dezember)\b)|[^.!?\n。；！？]|\.(?=\S)(?!(?<=[a-zа-яё]\.)[A-ZА-ЯЁ]))+[.!?。；！？]?")
 # A question is never a fact to keep: "Do I always need a visa?", "我們決定了嗎？"
 _RE_QUESTION = re.compile(r"[?？]\s*$|[嗎吗呢]\s*[。.]?\s*$")
 _EXTRACT_MAX_CHARS = 300

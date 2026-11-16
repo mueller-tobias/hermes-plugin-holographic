@@ -94,7 +94,7 @@ In `config.yaml` under `plugins.hermes-memory-store`:
 | Key | Default | Description |
 |-----|---------|-------------|
 | `db_path` | `$HERMES_HOME/memory_store.db` | SQLite database path |
-| `auto_extract` | `false` | Store user sentences that state a preference or decision (English, Russian, Chinese, French) after each completed turn, and also before context compression and at session end (not in `scope: user`, where a whole transcript cannot be attributed), at trust 0.4; questions, replies to the assistant ("I like that, sounds good") and restatements of a stored fact are skipped |
+| `auto_extract` | `false` | Store user sentences that state a preference or decision (English, Russian, Chinese, French, German) after each completed turn, and also before context compression and at session end (not in `scope: user`, where a whole transcript cannot be attributed), at trust 0.4; questions, replies to the assistant ("I like that, sounds good") and restatements of a stored fact are skipped |
 | `mirror_memory_writes` | `false` | Also store every built-in memory `add` (MEMORY.md / USER.md) as a fact |
 | `default_trust` | `0.5` | Trust score of a new fact |
 | `min_trust_threshold` | `0.3` | Facts below this trust are not recalled |
@@ -752,14 +752,38 @@ weather this week?" still recalls it, as "wifi password?" recalls the one fact a
 the two apart. In a script without capitals (Hebrew, Hindi, Arabic) a name cannot be told from a common word, so
 there one shared word recalls as it did. Stems are search keys, not lemmas: an irregular form can miss (`ponies` / `pony`). A
 negation counts for the whole clause up to a "but" ("likes cats but not dogs" is detail, not a conflict), not for a
-single word. `auto_extract` recognises English, Russian, Chinese and French phrasing. French covers a sentence that
+single word. `auto_extract` recognises English, Russian, Chinese, French and German phrasing. French covers a sentence that
 opens with a preference (`Je préfère…`, `J'aime…`, `J'adore…`, `J'utilise…`, `Je n'aime pas / plus…`, `Je n'utilise
 pas…`) or with a decision made together (`Nous avons décidé…`, `On a choisi…`); straight and curly apostrophes.
 `J'ai décidé…` is left out, as "I decided" is in English, and so is `Nous préférons…`. Only the start of a sentence
 counts: `Moi, je préfère le thé.` and `Oui, je préfère…` are not extracted. Replies to the assistant are skipped
 (`J'aime bien ça`, `Je n'aime pas du tout ça`, `Je préfère celui-ci`, `On a choisi celle-là`), and so is a sentence
 that opens with `si`; a condition later in the sentence is not seen (`Nous avons décidé de partir si la météo le
-permet.` is stored, as its English equivalent is). The refusal of instruction-like text, of a
+permet.` is stored, as its English equivalent is). German (this fork, `0.29.2+de.1`) follows French: only a
+sentence that opens with the statement counts, in German word order, any case, umlauts also as `ae / oe / ue / ss`
+and with or without a closing mark. Preferences (`user_pref`): `Ich bevorzuge / mag / liebe / hasse / nutze / benutze
+/ verwende …`; a habit word after any other verb (`Ich trinke nie …`, `Ich fahre immer …`, `Ich koche gern`,
+`meistens`, `normalerweise`, `lieber`, `am liebsten`, `stets`, `grundsätzlich`), including a separable verb (`Ich stehe
+immer früh auf`, `Ich ziehe Tee dem Kaffee vor`); `kein` after a verb of eating, drinking or using (`Ich esse kein
+Fleisch`); a habit word first and `ich` third (`Am liebsten trinke ich …`, `Normalerweise fahre ich …`); `Mein
+Lieblings… ist …`, `Meine bevorzugte … ist …`, `Ich lege Wert auf …`. `Ich möchte / will / brauche …` state an intent
+as often as not, the reason "want" and «хочу» are left out, so they count only with a word that makes them lasting
+(`Ich will keine Emojis`, `Ich brauche morgens immer Kaffee`, `künftig`, `ab sofort`), never after `nicht`.
+Decisions (`project`): `Wir haben (uns) entschieden / beschlossen / geeinigt / vereinbart / festgelegt / gewählt …`
+with something named before the participle or after it (`Wir haben uns für PostgreSQL entschieden`, `Wir haben
+beschlossen, SQLite zu behalten`), `Wir nehmen / nutzen / bleiben bei / setzen auf …`, `Das Projekt nutzt / verwendet
+/ braucht / benötigt …`, `Im Projekt nutzen wir …`. Left out: questions; the subjunctive (`Ich würde gern …`, `Ich
+hätte gern …`); a sentence that opens with `wenn / falls` or a lead-in (`Also, ich mag …`, `Gerne nehme ich …`);
+another person (`Er mag …`, `Meine Frau bevorzugt …`); a quote (`„Ich mag Kaffee", sagt er`); `Ich habe entschieden …`
+(a one-off, as "I decided"); a decision not taken (`Wir haben uns noch nicht entschieden`); an instruction (`Ich
+möchte, dass du …`), auxiliaries, modals and verbs of saying or thinking before a habit word (`Ich habe immer gesagt`,
+`Ich frage mich immer`). Replies to the assistant are skipped (`Ich mag das, klingt gut`, `Ich nehme diese Variante`,
+`Am liebsten nehme ich das`, `Wir haben uns dafür entschieden`), while `Ich mag das Meer` (an article and its noun) and
+`Ich mag es, wenn …` are kept. A condition later in the sentence is not seen, a habit word does not tell a one-off from a
+habit (`Ich gehe heute lieber früh schlafen` is stored) and `kein` is not told apart either (`Ich esse heute kein
+Mittag`). The dot of a German abbreviation (`z. B.`, `d. h.`, `u. a.`, `bzw.`, `usw.`, `ggf.`, `Dr.` …) or of a day
+before its month (`am 16. November`) no longer ends a sentence; a sentence that ends on one runs on into the next. The
+refusal of instruction-like text, of a
 credential with its value and of a request to send one covers all eighteen languages (0.15.1; English and Russian
 before). The
 main sets of all eighteen languages run in CI (`tests/test_holographic_languages.py`).
