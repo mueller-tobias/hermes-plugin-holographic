@@ -20,7 +20,8 @@
   `tests/test_holographic_auto_extract_german.py`.
 
 ### Fixed
-- **A German abbreviation or a day before its month no longer ends a sentence** for extraction: `z. B.`, `d. h.`,
+- **A German abbreviation or a day before its month no longer ends a sentence** for extraction (a splitter of its own
+  in `__init__.py`; `screen._RE_SENTENCE` stays 0.22.0's): `z. B.`, `d. h.`,
   `u. a.`, `o. ä.`, `bzw.`, `usw.`, `ggf.`, `evtl.`, `inkl.`, `zzgl.`, `bspw.`, `vgl.`, `ca.`, `Dr.`, `Prof.`, `Nr.`,
   `Str.`, `Mio.`, `Mrd.`, `etc.` and `am 16. November`; `16.11.2026` was whole before. `Ich nutze z. B. Vim und tmux`
   was cut into `Ich nutze z.` and `B. Vim und tmux` and stored as neither. A sentence that ends on one of these runs on

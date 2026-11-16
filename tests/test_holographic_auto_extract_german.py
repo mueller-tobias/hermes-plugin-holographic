@@ -5,7 +5,7 @@ import json
 import pytest
 
 from hermes_plugin_holographic import HolographicMemoryProvider
-from hermes_plugin_holographic.screen import _RE_SENTENCE
+from hermes_plugin_holographic import _RE_EXTRACT_SENTENCE as _RE_SENTENCE
 
 
 @pytest.fixture

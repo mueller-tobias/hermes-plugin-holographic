@@ -339,6 +339,14 @@ _DE_DECISION = (
                r'setzt\s+auf|basiert\s+auf|l(?:ä|ae)uft\s+(?:mit|auf|unter))\s+\S', re.IGNORECASE),
     re.compile(r'^im\s+projekt\s+(?:nutzen|verwenden|benutzen|brauchen)\s+wir\s+\S', re.IGNORECASE),
 )
+# screen._RE_SENTENCE for extraction, except that the dot of a German abbreviation ("z. B.", "d. h.", "bzw.", "usw.",
+# "Dr.") or of a day before its month ("am 16. November") does not end a sentence: "Ich nutze z. B. Vim und tmux" was
+# cut into "Ich nutze z." and "B. Vim und tmux" and stored as neither. A sentence that ends on such an abbreviation runs
+# on into the next ("… Obst, Gemüse usw. Wir haben …"). Here, not in screen.py, whose patterns are pinned to 0.22.0's.
+_RE_EXTRACT_SENTENCE = re.compile(
+    r"(?:(?<![^\W\d_])(?:[zZ]\.\s?B|[dD]\.\s?h|[uU]\.\s?a|[oO]\.\s?[äÄ]|bzw|usw|ggf|evtl|inkl|zzgl|bspw|vgl|ca|"
+    r"Dr|Prof|Nr|Str|Mio|Mrd|etc)\.|(?<!\d)\d{1,2}\.(?=\s+(?:Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|"
+    r"September|Oktober|November|Dezember)\b)|" + _RE_SENTENCE.pattern[3:])
 # The patterns that open a sentence, tried by _reaction on what is left after a reply without its leading space.
 _LEADING_EXTRACT = _FR_EXTRACT + _DE_PREF + _DE_DECISION
 
@@ -2944,7 +2952,7 @@ class HolographicMemoryProvider(MemoryProvider):
                 continue
             if not isinstance(content, str) or len(content) < _extract_floor(content) or _role_prompt(content):
                 continue  # a prompt pasted whole: its sentences pass one by one (Codex review), none is the user's
-            for sentence in (m.group(0).strip() for m in _RE_SENTENCE.finditer(content)):
+            for sentence in (m.group(0).strip() for m in _RE_EXTRACT_SENTENCE.finditer(content)):
                 if len(sentence) < _extract_floor(sentence) or len(sentence) > _EXTRACT_MAX_CHARS \
                         or _write_problem(sentence, person=True) or _RE_QUESTION.search(sentence) or _reaction(sentence):
                     continue
