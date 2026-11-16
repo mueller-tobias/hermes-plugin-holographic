@@ -246,6 +246,110 @@ _FR_EXTRACT = (
                + _FR_POINTER + _FR_REACTION_END + r")\S", re.IGNORECASE),
 )
 
+# German, as French: only a sentence that opens with the first-person statement counts, so a quote ('„Ich mag
+# Kaffee", sagt er'), a third person ("Er mag …", "Meine Frau bevorzugt …"), a condition ("Wenn ich … mag") or a
+# lead-in ("Also, ich mag …") is not the user's. Umlauts also as ae / oe / ue / ss, any case. The verb stands second:
+# "Ich trinke nie Kaffee", "Morgens trinke ich immer Tee", and a separable verb's particle at the end ("Ich ziehe Tee
+# vor", "Ich stehe immer früh auf") follows the habit word or the object, which the patterns let through.
+# Question words; with "ob" and "dass" after a verb of liking ("Ich möchte, dass du …" is an instruction), not after a
+# decision ("Wir haben vereinbart, dass Tests vor jedem Merge laufen" is its content).
+_DE_QWORD = r'(?:was|wer|wen|wem|wie|wo|wann|warum|wieso|weshalb|welche[nmrs]?|wohin|woher|womit|wof(?:ü|ue)r)'
+_DE_Q = r'(?:' + _DE_QWORD + r'|ob|dass|da(?:ß|ss))'
+# Between the verb and its object in a reply ("ich mag das wirklich sehr"), and after it up to the clause's end.
+_DE_ADVERB = (r'(?:auch|sehr|wirklich|echt|total|ziemlich|besonders|eigentlich|einfach|schon|ja|halt|eher|lieber|'
+              r'gerne?|so|richtig|voll|tats(?:ä|ae)chlich|definitiv|absolut|nicht|wohl|mehr|am\s+meisten)')
+# The end of a reply's clause, as _FR_REACTION_END's; not before ", wenn …": "Ich mag es, wenn es ruhig ist" goes on.
+_DE_REACTION_END = (r'(?:\s+' + _DE_ADVERB + r')*\s*(?!,\s*(?:wenn|falls|sobald|solange)\b)'
+                    r'(?:[,;…)—–]|[.!](?!\w)|-(?=\s)|[☀-➿\U0001f300-\U0001faff]|$)')
+# "das", "dies", "es", "das hier", "diese Idee" (a demonstrative and at most one word, as "that idea" in English):
+# what the assistant just said. "das Meer" is an article and its noun, and kept ("Ich mag das Meer").
+_DE_POINTER = (r'(?:das|dies|es|beides|beide|(?:das|den|die|der)\s+(?:hier|da|dort)|'
+               r'(?:diese[nmrs]?|jene[nmrs]?)(?:\s+[^\W\d_]+)?)')
+_DE_PREF_VERB = r'(?:bevorzuge|mag|liebe|hasse|nutze|n(?:ü|ue)tze|benutze|ben(?:ü|ue)tze|verwende)'
+# "möchte / will / brauche" state a one-off intent as often as not ("Ich möchte wissen, …", "Ich brauche den Bericht
+# bis morgen"), the reason "want" / "need" and «хочу» are left out (0.17.6); they count only with a word that makes
+# them lasting ("Ich will keine Emojis", "Ich brauche morgens immer Kaffee"), and not after "nicht" ("Ich will nicht
+# entscheiden", "Ich möchte nicht immer gefragt werden").
+_DE_WANT_VERB = r'(?:m(?:ö|oe)chte|will|brauche)'
+_DE_LASTING = (r'(?:immer|stets|nie|niemals|grunds(?:ä|ae)tzlich|generell|prinzipiell|kein(?:e[nmrs]?)?|'
+               r'k(?:ü|ue)nftig|zuk(?:ü|ue)nftig|in\s+zukunft|ab\s+(?:jetzt|sofort)|ausschlie(?:ß|ss)lich|nur\s+noch|'
+               r'jeden\s+(?:tag|morgen|abend)|t(?:ä|ae)glich|morgens|abends)')
+# A habit word after any other verb: "Ich trinke nie Kaffee", "Ich fahre immer mit dem Rad", "Ich koche gern".
+_DE_HABIT = (r'(?:immer|stets|nie|niemals|meistens|meist|normalerweise|gew(?:ö|oe)hnlich|(?:ü|ue)blicherweise|'
+             r'grunds(?:ä|ae)tzlich|generell|prinzipiell|gerne?|lieber|am\s+liebsten|t(?:ä|ae)glich|'
+             r'regelm(?:ä|ae)(?:ß|ss)ig|ausschlie(?:ß|ss)lich|nur\s+noch|jeden\s+(?:tag|morgen|abend))')
+# Verbs whose habit word says nothing lasting about the user: auxiliaries and modals ("Ich habe immer gesagt", "Ich
+# würde gern …", "Ich brauche nur noch eine Antwort"), and saying or thinking ("Ich frage mich immer, …").
+_DE_NOT_HABIT = (r'(?:bin|bist|habe|hab|hatte|h(?:ä|ae)tte|war|w(?:ä|ae)re|werde|wurde|w(?:ü|ue)rde|kann|konnte|'
+                 r'k(?:ö|oe)nnte|muss|mu(?:ß)|musste|m(?:ü|ue)sste|soll|sollte|darf|d(?:ü|ue)rfte|wollte|mochte|'
+                 r'wei(?:ß|ss)|frage|glaube|denke|dachte|meine|verstehe|hoffe|sage|sagte|' +
+                 _DE_WANT_VERB[3:-1] + r'|mag)')
+# What the user eats, drinks or uses none of: "Ich esse kein Fleisch", "Ich trinke keinen Alkohol".
+_DE_KEIN_VERB = (r'(?:esse|trinke|rauche|fahre|nutze|benutze|verwende|trage|kaufe|lese|schaue|h(?:ö|oe)re|spiele|'
+                 r'koche|backe|mag)')
+# A habit word standing first, the verb second and "ich" third: "Am liebsten trinke ich Tee", "Morgens trinke ich
+# Kaffee". Not "Gern(e)": "Gerne nehme ich das Angebot an" answers the assistant.
+_DE_FRONT = (r'(?:am\s+liebsten|lieber|meistens|meist|normalerweise|gew(?:ö|oe)hnlich|(?:ü|ue)blicherweise|'
+             r'grunds(?:ä|ae)tzlich|generell|prinzipiell|privat|beruflich|morgens|abends|t(?:ä|ae)glich|'
+             r'zu\s*hause|daheim)')
+_DE_PARTICIPLE = (r'(?:entschieden|beschlossen|geeinigt|vereinbart|festgelegt|abgemacht|ausgemacht|'
+                  r'(?:aus)?gew(?:ä|ae)hlt|verst(?:ä|ae)ndigt)')
+# Words between "wir haben (uns)" and the participle that name nothing: "Wir haben uns jetzt dafür entschieden."
+_DE_DECIDED_EMPTY = (r'(?:uns|das|dies|es|so|dazu|daf(?:ü|ue)r|dagegen|darauf|darauf|jetzt|nun|also|doch|ja|gemeinsam|'
+                     r'zusammen|bereits|schon|endlich|eben|gerade|heute|gestern)')
+# … and what is left of a pointer: "für das hier", "auf diese Variante" (a demonstrative and at most one word).
+_DE_DECIDED_POINTER = (r'(?:(?:f(?:ü|ue)r|auf)\s+)?(?:(?:diese[nmrs]?|jene[nmrs]?)\s+[^\W\d_]+\s+|'
+                       r'(?:das|den|die|dies)\s+(?:(?:hier|da)\s+)?)?')
+_DE_PREF = (
+    # "Ich bevorzuge / mag / liebe / hasse / nutze / benutze / verwende …": not a question word or "dass" next,
+    # adverbs in between or not ("Ich möchte, dass du …" is an instruction, as "je préfère que tu …"), and not "dich /
+    # dir / euch". Replies ("Ich mag das, klingt gut") are taken out by the German branch of _RE_REACTION.
+    re.compile(r'^ich\s+' + _DE_PREF_VERB + r'(?!\w)(?!\s*,?\s*(?:' + _DE_ADVERB + r'\s+)*(?:' + _DE_Q +
+               r'|dich|dir|euch)(?!\w))\s*,?\s*\S', re.IGNORECASE),
+    re.compile(r'^ich\s+' + _DE_WANT_VERB + r'\s+(?:(?!nicht\b)[^\W\d_]+\s+){0,2}?' + _DE_LASTING + r'(?!\w)',
+               re.IGNORECASE),
+    re.compile(r'^ich\s+(?!' + _DE_NOT_HABIT + r'(?!\w))[^\W\d_]+\s+(?:[^\W\d_]+\s+){0,2}?' + _DE_HABIT + r'(?!\w)',
+               re.IGNORECASE),
+    re.compile(r'^ich\s+' + _DE_KEIN_VERB + r'\s+(?:[^\W\d_]+\s+){0,2}?kein(?:e[nmrs]?)?\s+\S', re.IGNORECASE),
+    re.compile(r'^' + _DE_FRONT + r'\s+(?!' + _DE_NOT_HABIT + r'(?!\w))[^\W\d_]+\s+ich\s+\S', re.IGNORECASE),
+    # "Ich ziehe Tee vor" (not "Ich ziehe das vor"), "Ich lege großen Wert auf …".
+    re.compile(r'^ich\s+(?:ziehe\s+(?!(?:das|dies|den|die|es)(?:\s+(?:hier|da))?\s+vor\b)\S.*?\svor(?!\w)|'
+               r'lege\s+(?:[^\W\d_]+\s+){0,2}?wert\s+auf\s+\S)', re.IGNORECASE),
+    # "Mein Lieblingseditor ist …", "Meine bevorzugte Sprache ist …", "Mein Standard-Browser ist …".
+    re.compile(r'^mein(?:e)?\s+(?:lieblings[\w-]+|(?:bevorzugte[rs]?|liebste[rs]?)\s+[\w-]+|standard[\w-]+)\s+'
+               r'(?:ist|sind|hei(?:ß|ss)t|hei(?:ß|ss)en|bleibt)\s+\S', re.IGNORECASE),
+)
+_DE_DECISION = (
+    # "we" only, as in English, Russian and French: "Ich habe entschieden, …" is a one-off. The participle closes the
+    # clause in German, so either something follows it ("Wir haben beschlossen, SQLite zu behalten") or something
+    # stands before it that names more than a pointer ("Wir haben uns für PostgreSQL entschieden"; not "Wir haben uns
+    # dafür entschieden", "Wir haben das so beschlossen"). Not "nicht / noch nicht / nie" before it.
+    re.compile(r'^wir\s+haben\s+(?:uns\s+)?(?:(?:jetzt|nun|gemeinsam|zusammen|bereits|schon|endlich|heute|gestern|'
+               r'einstimmig)\s+)*' + _DE_PARTICIPLE + r'(?!\w)\s*[,:]?\s*(?!(?:' + _DE_QWORD + r'|ob|danke|ok|okay|gut|super|passt|prima)(?!\w))[^\W\d_]', re.IGNORECASE),
+    re.compile(r'^wir\s+haben\s+(?:uns\s+)?(?![^,.;:!?]*\b(?:nicht|nie|niemals|kaum)\s+(?:[^\W\d_]+\s+)?'
+               + _DE_PARTICIPLE + r')(?!(?:' + _DE_DECIDED_EMPTY + r'\s+)*' + _DE_DECIDED_POINTER + _DE_PARTICIPLE +
+               r'(?!\w)' + _DE_REACTION_END + r')(?!' + _DE_PARTICIPLE + r'(?!\w))[^,;:!?]*?\s' + _DE_PARTICIPLE +
+               r'(?!\w)', re.IGNORECASE),
+    # "Wir nehmen / nutzen / bleiben bei / setzen auf …", not a bare pointer ("Wir nehmen das.").
+    re.compile(r'^wir\s+(?:nehmen|nutzen|verwenden|benutzen|bleiben\s+bei|setzen\s+auf|'
+               r'entscheiden\s+uns\s+f(?:ü|ue)r|einigen\s+uns\s+auf)\s+(?!' + _DE_POINTER + _DE_REACTION_END +
+               r')(?!' + _DE_Q + r'(?!\w))\S', re.IGNORECASE),
+    # The project as the subject, as "the project uses …" in English.
+    re.compile(r'^(?:das|unser|dieses)\s+projekt\s+(?:nutzt|verwendet|benutzt|braucht|ben(?:ö|oe)tigt|erfordert|'
+               r'setzt\s+auf|basiert\s+auf|l(?:ä|ae)uft\s+(?:mit|auf|unter))\s+\S', re.IGNORECASE),
+    re.compile(r'^im\s+projekt\s+(?:nutzen|verwenden|benutzen|brauchen)\s+wir\s+\S', re.IGNORECASE),
+)
+# screen._RE_SENTENCE for extraction, except that the dot of a German abbreviation ("z. B.", "d. h.", "bzw.", "usw.",
+# "Dr.") or of a day before its month ("am 16. November") does not end a sentence: "Ich nutze z. B. Vim und tmux" was
+# cut into "Ich nutze z." and "B. Vim und tmux" and stored as neither. A sentence that ends on such an abbreviation runs
+# on into the next ("… Obst, Gemüse usw. Wir haben …"). Here, not in screen.py, whose patterns are pinned to 0.22.0's.
+_RE_EXTRACT_SENTENCE = re.compile(
+    r"(?:(?<![^\W\d_])(?:[zZ]\.\s?B|[dD]\.\s?h|[uU]\.\s?a|[oO]\.\s?[äÄ]|bzw|usw|ggf|evtl|inkl|zzgl|bspw|vgl|ca|"
+    r"Dr|Prof|Nr|Str|Mio|Mrd|etc)\.|(?<!\d)\d{1,2}\.(?=\s+(?:Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|"
+    r"September|Oktober|November|Dezember)\b)|" + _RE_SENTENCE.pattern[3:])
+# The patterns that open a sentence, tried by _reaction on what is left after a reply without its leading space.
+_LEADING_EXTRACT = _FR_EXTRACT + _DE_PREF + _DE_DECISION
+
 # Auto-extraction: (patterns, category) — preferences -> user_pref, decisions -> project. Matched per sentence; the
 # sentence is stored, not the whole message.
 _EXTRACT_CATEGORIES = (
@@ -260,6 +364,7 @@ _EXTRACT_CATEGORIES = (
       re.compile(r'(?:^|\s)я\s+(?:предпочитаю|люблю|использую|пользуюсь|обычно|всегда|никогда|не\s+ем|не\s+пью)\s+\S', re.IGNORECASE),
       re.compile(r'(?:^|\s)мо[йяеи]\s+любим\w+\s+\S', re.IGNORECASE),
       _FR_EXTRACT[0],
+      *_DE_PREF,
       # Chinese, Traditional and Simplified (after itpartypattaya/hermes-plugin-holographic#2 by au61987ai-code). The
       # sentence must open with the preference — "I" or no subject — so "你喜歡什麼" (what do YOU like) and "他喜歡吃辣"
       # (HE likes spicy food) are not the user's; "不用" (no need) and "我覺得 / 以我來看" (passing opinions) are left out.
@@ -272,6 +377,7 @@ _EXTRACT_CATEGORIES = (
       re.compile(r'(?:^|\s)мы\s+(?:решили|договорились|выбрали)\s+\S', re.IGNORECASE),
       re.compile(r'(?:^|\s)в\s+проекте\s+(?:используем|используется|нужен|нужна|нужно)\s+\S', re.IGNORECASE),
       _FR_EXTRACT[1],
+      *_DE_DECISION,
       # Chinese: an explicit deciding subject ("你必須先備份" is an order to the assistant, not a decision), or the
       # project / its rules as the subject, as "the project uses …" is in English.
       re.compile(r'^(?:我們|我们|大家|團隊|团队|雙方|双方)(?:已經|已经|最後|最后|一致)?'
@@ -303,21 +409,27 @@ _RE_REACTION = re.compile(
     r"|\b(?:je\s+(?:pr[ée]f[èe]re|n['’](?:aime|utilise))|j['’](?:aime|adore|utilise))(?:\s+" + _FR_ADVERB + r"\b)*"
     r"(?:(?:\s+(?:ça|cela|ceci|(?:ce|cet|cette|ces)(?:\s+[^\W\d_]+)?))?"
     r"|\s+(?:celui|celle|ceux|celles)(?:-ci|-là)?(?:\s+pour\s+(?:le\s+moment|l['’]instant|aujourd['’]hui|ce\s+soir))?)"
-    + _FR_REACTION_END,
+    + _FR_REACTION_END +
+    # German: "ich", any run of adverbs, a verb of liking, using or wanting, then "das / dies / es / das hier" or
+    # "diese / jene" and at most one word, up to the end of the clause ("Ich mag das, klingt gut", "Ich nehme diese
+    # Variante", "Am liebsten nehme ich das"); "Ich mag es, wenn …" goes on (_DE_REACTION_END).
+    r'|\b(?:ich\s+(?:' + _DE_ADVERB + r'\s+)*(?:' + _DE_PREF_VERB + '|' + _DE_WANT_VERB + r'|nehme|finde)|'
+    r'(?:am\s+liebsten|lieber)\s+(?:' + _DE_PREF_VERB + r'|nehme)\s+ich)(?:\s+' + _DE_ADVERB + r')*\s+'
+    + _DE_POINTER + _DE_REACTION_END,
     re.IGNORECASE)
 
 
 def _reaction(sentence: str) -> bool:
     """A sentence that states no preference but a reply to the assistant (_RE_REACTION), with nothing left that
     would be extracted once the reply is taken out ("I like that, I always use tabs" keeps its second half). The
-    French patterns open the sentence, so they are tried on what is left without its leading space ("J'aime ça, je
-    préfère le thé"); the others as it is, which keeps a Chinese reply after an English one out ("I like that,
+    French and German patterns open the sentence, so they are tried on what is left without its leading space
+    ("J'aime ça, je préfère le thé", "Ich mag das, ich nutze aber lieber Vim"); the others as it is, which keeps a Chinese reply after an English one out ("I like that,
     我喜欢这个建议")."""
     if not _RE_REACTION.search(sentence):
         return False
     rest = _RE_REACTION.sub(" ", sentence)
     return not (any(p.search(rest) for patterns, _ in _EXTRACT_CATEGORIES for p in patterns)
-                or any(p.search(rest.lstrip()) for p in _FR_EXTRACT))
+                or any(p.search(rest.lstrip()) for p in _LEADING_EXTRACT))
 
 
 def _write_problem(content: str, person: bool = False) -> str | None:
@@ -916,7 +1028,7 @@ class HolographicMemoryProvider(MemoryProvider):
         return [
             {"key": "db_path", "description": "SQLite database path", "default": current("db_path", _DEFAULT_DB_PATH)},
             {"key": "auto_extract", "description": "Store user sentences that state a preference or decision "
-             "(English, Russian, Chinese and French patterns) after each turn, before context compression and at session end",
+             "(English, Russian, Chinese, French and German patterns) after each turn, before context compression and at session end",
              "default": current("auto_extract", "false"), "choices": ["true", "false"]},
             {"key": "default_trust", "description": "Default trust score for new facts", "default": current("default_trust", "0.5")},
             {"key": "hrr_dim", "description": "HRR vector dimensions", "default": current("hrr_dim", "1024")},
@@ -2840,7 +2952,7 @@ class HolographicMemoryProvider(MemoryProvider):
                 continue
             if not isinstance(content, str) or len(content) < _extract_floor(content) or _role_prompt(content):
                 continue  # a prompt pasted whole: its sentences pass one by one (Codex review), none is the user's
-            for sentence in (m.group(0).strip() for m in _RE_SENTENCE.finditer(content)):
+            for sentence in (m.group(0).strip() for m in _RE_EXTRACT_SENTENCE.finditer(content)):
                 if len(sentence) < _extract_floor(sentence) or len(sentence) > _EXTRACT_MAX_CHARS \
                         or _write_problem(sentence, person=True) or _RE_QUESTION.search(sentence) or _reaction(sentence):
                     continue

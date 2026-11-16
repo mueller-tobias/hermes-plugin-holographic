@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.29.2+de.1 — 2026-11-16 (fork)
+
+### Added
+- **German auto-extraction** (`auto_extract`, off by default), built as French was in 0.27.0. A sentence that opens
+  with a preference is stored as `user_pref` (`Ich bevorzuge / mag / liebe / hasse / nutze / benutze / verwende…`, a
+  habit word after the verb: `Ich trinke nie…`, `Ich fahre immer…`, `Ich koche gern…`, `Ich esse kein Fleisch`, a
+  separable verb: `Ich stehe immer früh auf`, `Ich ziehe Tee vor`; the verb second: `Am liebsten trinke ich…`,
+  `Normalerweise fahre ich…`; `Mein Lieblings… ist…`, `Meine bevorzugte… ist…`), one that opens with a decision made
+  together as `project` (`Wir haben uns für… entschieden`, `Wir haben beschlossen / vereinbart…`, `Wir haben uns auf…
+  geeinigt`, `Wir nehmen / nutzen / bleiben bei…`, `Das Projekt nutzt / verwendet / braucht…`, `Im Projekt nutzen
+  wir…`), at the same trust and through the same screens as English. Any case, umlauts also as `ae / oe / ue / ss`,
+  with or without a closing mark. `Ich möchte / will / brauche…` count only with a word that makes them lasting
+  (`Ich will keine Emojis`, `Ich brauche morgens immer Kaffee`), as "want" / "need" are left out in English. Replies
+  to the assistant are a German branch of `_RE_REACTION` (`Ich mag das, klingt gut`, `Ich nehme diese Variante`,
+  `Wir haben uns dafür entschieden`); questions, the subjunctive (`Ich würde gern…`), `wenn / falls…`, lead-ins,
+  another person (`Er mag…`, `Meine Frau bevorzugt…`), quotes, `Ich habe entschieden…`, `Wir haben uns noch nicht
+  entschieden` and instructions (`Ich möchte, dass du…`) are left out. Tests:
+  `tests/test_holographic_auto_extract_german.py`.
+
+### Fixed
+- **A German abbreviation or a day before its month no longer ends a sentence** for extraction (a splitter of its own
+  in `__init__.py`; `screen._RE_SENTENCE` stays 0.22.0's): `z. B.`, `d. h.`,
+  `u. a.`, `o. ä.`, `bzw.`, `usw.`, `ggf.`, `evtl.`, `inkl.`, `zzgl.`, `bspw.`, `vgl.`, `ca.`, `Dr.`, `Prof.`, `Nr.`,
+  `Str.`, `Mio.`, `Mrd.`, `etc.` and `am 16. November`; `16.11.2026` was whole before. `Ich nutze z. B. Vim und tmux`
+  was cut into `Ich nutze z.` and `B. Vim und tmux` and stored as neither. A sentence that ends on one of these runs on
+  into the next.
+
 ## 0.29.2 — 2026-11-17
 
 ### Fixes
