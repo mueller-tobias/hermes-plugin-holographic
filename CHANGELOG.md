@@ -13,6 +13,10 @@
   `[User sent …]`), whatever the person wrote with it. Recall is unchanged. A forwarded Telegram message carries no
   marker in the text the core passes on (hermes-agent v0.23.1) and is still read as the person's own. Tests:
   `tests/test_holographic_auto_extract_own_words.py`.
+- **The store opens on a core that moved its WAL helper.** hermes-agent `main` moved `apply_wal_with_fallback` from
+  `hermes_state_wal` into `sqlite_support` (hermes-agent#149566, 2026-11-17); every open then failed with
+  `ModuleNotFoundError` and memory was off. The store imports it from `sqlite_support` when `hermes_state_wal` is
+  gone; on cores that have it (v0.23.1) nothing changes.
 
 ## 0.29.2+de.1 — 2026-11-16 (fork)
 
