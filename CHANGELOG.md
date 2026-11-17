@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.29.2+de.2 — 2026-11-17 (fork)
+
+### Fixed
+- **`auto_extract` stores only the person's own words.** It read the user turn as the gateway built it, while recall
+  already read only `_own_words` (0.27.1). From the second sentence on, a quoted reply (`[Replying to: "…"]`) matched
+  the patterns, and so did a document's inlined text, a background-process or delegation notice injected as a user
+  turn, and the gateway's notes. Each became a fact with origin `said` and trust 0.4, with no tool call that a guard or
+  a confirmation could see. Extraction now reads `_own_words` (quote, cron hint and the author's name in a shared chat
+  off, a notice turn empty), takes a leading `[System note: …]` off, and skips a turn that is still the gateway's
+  (`[IMPORTANT: …]`, `[ASYNC DELEGATION …]`) or carries an attachment (`[Content of <name>]:`, `[The user sent …]`,
+  `[User sent …]`), whatever the person wrote with it. Recall is unchanged. A forwarded Telegram message carries no
+  marker in the text the core passes on (hermes-agent v0.23.1) and is still read as the person's own. Tests:
+  `tests/test_holographic_auto_extract_own_words.py`.
+
 ## 0.29.2+de.1 — 2026-11-16 (fork)
 
 ### Added

@@ -715,6 +715,32 @@ def _own_words(message: str, author: str = "") -> str:
     return message[start:]
 
 
+# What auto_extract stores is filed as the person's own words (origin "said"), so it reads only those (0.29.2+de.2):
+# _own_words first (the quote, the cron hint, a notice turn off), then what the gateway adds and _own_words leaves to
+# recall. A "[System note: …]" (gateway/run.py, run_turn_runner.py, session.py) comes off the front; the person's
+# message, if any, follows it. A turn that is still the gateway's after that is skipped whole: any "[IMPORTANT: …]"
+# (a background process, a watch pattern, an MCP reload: tools/process_registry_notifications.py, gateway/run_turn.py)
+# or "[ASYNC DELEGATION …]". So is a turn with an attachment, whatever the person wrote with it: a document's text
+# inlined as "[Content of <name>]:" (the Telegram, Discord, Slack, WhatsApp and Feishu adapters), a gateway note
+# "[The user sent …]" (a document, an image, a sticker, an audio or video file, one that could not be retrieved) or
+# "[User sent …]" (a file by URL). A forwarded Telegram message carries no marker in the text the core passes on
+# (hermes-agent v0.23.1), so it cannot be told from typed text and is read as the person's own.
+_RE_SYSTEM_NOTE = re.compile(r"\[System note: [^\]]*\](?:\n\n|\s*$)")
+_RE_NOT_OWN_TURN = re.compile(r"\[(?:IMPORTANT: |ASYNC DELEGATION |System note: )")
+_RE_ATTACHMENT = re.compile(r"^\[(?:The user sent |User sent |Content of [^\]\n]*\]:)", re.M)
+
+
+def _extract_words(message: str, author: str = "") -> str:
+    """The person's own words in a user turn for auto_extract, or "" when the turn holds none that may be stored as
+    theirs (a notice, an attachment)."""
+    if _RE_ATTACHMENT.search(message):
+        return ""
+    words = _own_words(message, author)
+    while note := _RE_SYSTEM_NOTE.match(words):
+        words = words[note.end():]
+    return "" if _RE_NOT_OWN_TURN.match(words) else words
+
+
 _RE_DISPLAY_NAME = re.compile(r"[^\W\d_][\w .'’-]{0,39}")
 
 
@@ -2950,6 +2976,8 @@ class HolographicMemoryProvider(MemoryProvider):
                 content = pre
             elif content is None or is_compaction_summary_message(msg):
                 continue
+            if isinstance(content, str):  # the person's own words only: no quote, notice or attachment (de.2)
+                content = _extract_words(content, str((author or {}).get("name") or ""))
             if not isinstance(content, str) or len(content) < _extract_floor(content) or _role_prompt(content):
                 continue  # a prompt pasted whole: its sentences pass one by one (Codex review), none is the user's
             for sentence in (m.group(0).strip() for m in _RE_EXTRACT_SENTENCE.finditer(content)):
