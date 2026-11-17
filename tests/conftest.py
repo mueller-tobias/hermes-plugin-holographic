@@ -79,3 +79,15 @@ def pytest_runtest_setup(item):
         with tempfile.TemporaryDirectory() as tmp:
             if not _symlinks_supported(Path(tmp)):
                 pytest.skip("symbolic links are not supported here (Windows needs developer mode)")
+
+
+@pytest.fixture
+def legacy_wal_name(monkeypatch):
+    """The releases the compat tests load from tags import ``hermes_state_wal``, which core main moved into
+    ``sqlite_support`` (hermes-agent#149566). For those tests only, the old name points at the new module when it is
+    gone; the rest of the suite runs the plugin's own fallback in store.py."""
+    try:
+        import hermes_state_wal  # noqa: F401 - present: nothing to do
+    except ImportError:
+        import sqlite_support
+        monkeypatch.setitem(sys.modules, "hermes_state_wal", sqlite_support)
