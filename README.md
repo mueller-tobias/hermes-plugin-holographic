@@ -759,7 +759,11 @@ pas…`) or with a decision made together (`Nous avons décidé…`, `On a chois
 counts: `Moi, je préfère le thé.` and `Oui, je préfère…` are not extracted. Replies to the assistant are skipped
 (`J'aime bien ça`, `Je n'aime pas du tout ça`, `Je préfère celui-ci`, `On a choisi celle-là`), and so is a sentence
 that opens with `si`; a condition later in the sentence is not seen (`Nous avons décidé de partir si la météo le
-permet.` is stored, as its English equivalent is). German (this fork, `0.29.2+de.1`) follows French: only a
+permet.` is stored, as its English equivalent is). Extraction reads only the person's own words (`0.29.2+de.2`): a quoted reply, a leading
+`[System note: …]` and the author's name in a shared chat come off; a notice turn (`[IMPORTANT: …]`, `[ASYNC
+DELEGATION …]`) and a turn with an attachment (`[Content of …]:`, `[The user sent …]`, `[User sent …]`) are skipped
+whole; a forwarded Telegram message has no marker and is read as typed. German (this fork, `0.29.2+de.1`) follows
+French: only a
 sentence that opens with the statement counts, in German word order, any case, umlauts also as `ae / oe / ue / ss`
 and with or without a closing mark. Preferences (`user_pref`): `Ich bevorzuge / mag / liebe / hasse / nutze / benutze
 / verwende …`; a habit word after any other verb (`Ich trinke nie …`, `Ich fahre immer …`, `Ich koche gern`,

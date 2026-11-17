@@ -224,7 +224,10 @@ class MemoryStore(EntityMixin, GraphMixin, HistoryMixin, ExperienceMixin):
     def _init_db(self) -> None:
         """Create schema, enable WAL via the shared fallback helper (NFS/SMB/FUSE degrade gracefully), add hrr_vector
         to pre-HRR DBs, and narrow the FTS update trigger of DBs created by older versions."""
-        from hermes_state_wal import apply_wal_with_fallback
+        try:
+            from hermes_state_wal import apply_wal_with_fallback
+        except ImportError:  # core main moved it into sqlite_support (hermes-agent#149566, 2026-11-17)
+            from sqlite_support import apply_wal_with_fallback
         apply_wal_with_fallback(self._conn, db_label="memory_store.db (holographic)")
         self._conn.executescript(_SCHEMA)  # _init_db creates the base schema and the WAL setup, never the graph: a
                                            # writer's _migrate() alone creates entity_relations and its triggers
